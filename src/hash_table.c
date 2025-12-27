@@ -114,9 +114,8 @@ static int _ht_resize(ht *table, size_t new_cap) {
     return 1;
   }
   ht_entry *old = table->array;
-  size_t old_cap = table->cap;
 
-  for (size_t i = 0; i < old_cap; i++) {
+  for (size_t i = 0; i < table->cap; i++) {
     ht_entry *src = &old[i];
     // empty noop
     if (src->key.data == NULL) {
@@ -129,13 +128,15 @@ static int _ht_resize(ht *table, size_t new_cap) {
       if (dst->key.data == NULL) {
         // empty, update the destination
         *dst = *src;
-        //table->elements += 1;
         break;
       }
       // not empty, probe for next empty and try again
       idx = (idx + 1) % new_cap;
     }
   }
+
+  // update values then free the old allocation  
+  table->cap = new_cap;
   table->array = new;
   free(old);
   return 0;
