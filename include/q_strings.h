@@ -5,6 +5,8 @@
 
 #define LITERAL_TO_STR(s) ((str){.data = (char *)s, .len = sizeof(s) - 1})
 
+#define BAD_STR ((str){.data = NULL, .len = 0})
+
 typedef struct {
   char *data;
   ptrdiff_t len;
