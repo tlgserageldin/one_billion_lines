@@ -78,6 +78,23 @@ dist_err distribute(ptrdiff_t n, str input) {
     return (dist_err) {
         .ok = true, .result = a, .elements = n
     };
+}
+
+long get_file_length(FILE *f) {
+    if (fseek(f, 0L, SEEK_END) != 0) {
+        return -1;
+    }
+
+    long res = ftell(f);
+    if (res == -1) {
+        return -1;
+    }
+
+    if (fseek(f, 0L, SEEK_SET) != 0) {
+        return -1;
+    }
+
+    return res;    
 }  
 
 int main(void) {
@@ -96,19 +113,4 @@ int main(void) {
     //    for (ptrdiff_t i = 0; i < n_processors; ++i) {
     //        pthread_create(&threads[i], NULL, thread_function, &i);
     //    }
-
-    if (fseek(f, 0L, SEEK_END) != 0) {
-        return EXIT_FAILURE;
-    }
-
-    long res = ftell(f);
-    if (res == -1) {
-      return EXIT_FAILURE;
-    }
-
-    if (fseek(f, 0L, SEEK_SET) !0) {
-        return EXIT_FAILURE;      
-    }      
-
-    fprintf(stdout, "Size of 1000_lines.txt is %ld.\n", res);    
 }
