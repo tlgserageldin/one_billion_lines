@@ -33,7 +33,7 @@ snip cut(str s, char c) {
 
   n.ok = cut < end;
   n.head = slice(beggining, cut);
-  // if ok then we want char after delim,
+  // if ok then we want one past the delim,
   // otherwise we hit the end so just return a 0 len str
   n.tail = slice(n.ok ? cut + 1 : cut, end);
 
