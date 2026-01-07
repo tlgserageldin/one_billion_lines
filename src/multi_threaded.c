@@ -1,7 +1,8 @@
 #include "q_strings.h"
 #include "hash_table.h"
-//#include <cstdlib>
-#include <cstdlib>
+// #include <cstdlib>
+#include <assert.h>
+#include <cstdlib.h>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -39,10 +40,12 @@ void *thread_function(void *arg) {
 }
 
 /*
-  will return an array of equally sized substrings of input
+  will return an array of x deepcoppied substrings
+  from input string of length n, where the length
+  of each substring is <= (n / x) + (i <= n mod x ? 1 : 0)
 */
-dist_err distribute(ptrdiff_t n, str input) {
-    if (!is_valid_str(input)) {
+dist_err distribute(ptrdiff_t x, str input) {
+    if (!is_valid_str(input) || x <= 0) {
         return (dist_err){0};
     }
 
@@ -62,22 +65,28 @@ dist_err distribute(ptrdiff_t n, str input) {
       stuff[2].len = 11/3 + 0, because i+1 = 3 !<= 11 % 3
     */
 
-    str a[n];
-    ptrdiff_t total_length = 0;    
-    for (ptrdiff_t i = 0; i < n; ++i) {
-      a[i].len = (input.len / n) + ((i + 1) <= input.len % n ? 1 : 0);
-      // a[i].data = calloc((size_t)a[i].len, sizeof(char));
-      a[i].data = NULL;
-      total_length += a[i].len;
-      fprintf(stdout,
-              "%td-th string, is of length %td.\n"
-              "Amount of space made = %td\n"
-              "Expected space: %td\n",
-              i, a[i].len, total_length, input.len);
+    str a[x];
+    // zeroing the dist_err sets ok to false    
+    dist_err res = {0};
+    ptrdiff_t n = input.len;    
+    for (ptrdiff_t i = 0; i < x; ++i) {
+        if ((i + 1) <= n % x) {
+            a[i].len = (n / x) + 1;
+        } else {
+            a[i].len = (n / x);        
+        }        
+        assert(a[i].len >= 0);
+        a[i].data = calloc((size_t)a[i].len, sizeof(char));
+        if (a[i].data == NULL) {
+            return res;          
+        }
     }
-    return (dist_err) {
-        .ok = true, .result = a, .elements = n
-    };
+
+    res.ok = true;    
+    res.result = a;
+    res.elements = x;
+
+    return res;
 }
 
 long get_file_length(FILE *f) {
@@ -113,4 +122,6 @@ int main(void) {
     //    for (ptrdiff_t i = 0; i < n_processors; ++i) {
     //        pthread_create(&threads[i], NULL, thread_function, &i);
     //    }
+
+    
 }
