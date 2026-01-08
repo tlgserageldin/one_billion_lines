@@ -27,12 +27,14 @@
   return a value of the same type.
 */
 
+// distribute return struct
 typedef struct {
     bool ok;
     str *result;
     size_t elements;    
 } dist_err;
 
+// placeholder function for threads to call
 void *thread_function(void *arg) {
     ptrdiff_t name = *(ptrdiff_t *)arg;
     fprintf(stdout, "My name is %td\n", name);
@@ -42,7 +44,7 @@ void *thread_function(void *arg) {
 /*
   will return an array of x deepcoppied substrings
   from input string of length n, where the length
-  of each substring is <= (n / x) + (i <= n mod x ? 1 : 0)
+  of each substring is >= (n / x) + (i <= n mod x ? 1 : 0)
 */
 dist_err distribute(ptrdiff_t x, str input) {
     if (!is_valid_str(input) || x <= 0) {
@@ -53,9 +55,9 @@ dist_err distribute(ptrdiff_t x, str input) {
       signed integer division rounds towards 0
       n items into x groups
       will be left with n % x elements
-      so for the first n % n elements we add 1 to the length
-      for i = 1..n
-      ptrdiff_t segment_size = (input.len / n) + (i <= n mod x ? 1 : 0)
+      so for the first n % x elements we add 1 to the length
+      for i = 1..x
+      ptrdiff_t segment_size = (n / x) + (i <= n mod x ? 1 : 0)
       example:
       11 / 3 = 3
       11 % 3 = 2
@@ -66,20 +68,45 @@ dist_err distribute(ptrdiff_t x, str input) {
     */
 
     str a[x];
-    // zeroing the dist_err sets ok to false    
+    // zeroing the dist_err sets ok to false
     dist_err res = {0};
-    ptrdiff_t n = input.len;    
+    ptrdiff_t n = input.len;
+    ptrdiff_t total_walked = 0;    
     for (ptrdiff_t i = 0; i < x; ++i) {
-        if ((i + 1) <= n % x) {
+        // calcuate minimum size      
+        if (i + 1 <= n % x) {
             a[i].len = (n / x) + 1;
         } else {
-            a[i].len = (n / x);        
-        }        
-        assert(a[i].len >= 0);
+            a[i].len = (n / x);
+        }
+        
+        // walk forward to next newline
+        // handles end of input not having newline        
+        while (*(input.data + total_walked + a[i].len) != '\n' && total_walked + a[i].len < input.len) {
+            ++a[i].len;
+        }
+        
+        // allocate
         a[i].data = calloc((size_t)a[i].len, sizeof(char));
         if (a[i].data == NULL) {
-            return res;          
+            return res;
         }
+        
+        // copy
+        for (ptrdiff_t j = 0; j < a[i].len; ++j) {
+            *(a[i].data + j) = *(input.data + total_walked + j);
+        }
+        assert(total_walked + a[i].len > total_walked);
+        total_walked += a[i].len;
+        
+        // check for end of input
+        if (total_walked == input.len) {
+          res.ok = true;
+          res.result = a;
+          res.elements = i + 1;
+
+          return res;          
+        }          
     }
 
     res.ok = true;    
