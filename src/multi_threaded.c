@@ -2,7 +2,9 @@
 #include "hash_table.h"
 // #include <cstdlib>
 #include <assert.h>
-#include <cstdlib.h>
+// #include <cstdlib.h>
+// #include <cstdlib>
+#include <climits>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -11,28 +13,39 @@
 #include <unistd.h>
 
 /*
+
   basic architecture should be:
   - distributor
   - creates the chunks for the workers to process
   - process
   - each thread then process their chunk of the file
-  - after building their hashtable, a passed pointer should be updated to point to the table they built
+  - after building their hashtable, a passed pointer should be updated to point
+    to the table they built
   - merge
   - after all threads return merge the hash tables
+
 */
 
 /*
+
   A Pthreads thread begins by calling some function that you provide. This
   “thread function” should expect a single argument of type void *, and should
   return a value of the same type.
+
 */
 
 // distribute return struct
 typedef struct {
     bool ok;
     str *result;
-    size_t elements;    
-} dist_err;
+    size_t elements;
+} dist_res;
+
+dist_res build_result(bool ok, str *r, size_t e) {
+  return (dist_res) {
+    .ok = ok, .result = r, .elements = e,
+  };    
+}  
 
 // placeholder function for threads to call
 void *thread_function(void *arg) {
@@ -42,21 +55,24 @@ void *thread_function(void *arg) {
 }
 
 /*
-  will return an array of x deepcoppied substrings
-  from input string of length n, where the length
-  of each substring is >= (n / x) + (i <= n mod x ? 1 : 0)
+
+  will return an array of str that point into input
+  breaking on \n, of a number of slices <= x
+
 */
-dist_err distribute(ptrdiff_t x, str input) {
-    if (!is_valid_str(input) || x <= 0) {
-        return (dist_err){0};
+dist_res distribute(ptrdiff_t x, str input) {
+  
+    if (!is_valid_str(input) || x >= input.len || x <= 0 || *(input.data + input.len) != '\n') {
+        return (dist_res){0};
     }
 
     /*
+
       signed integer division rounds towards 0
       n items into x groups
       will be left with n % x elements
       so for the first n % x elements we add 1 to the length
-      for i = 1..x
+      for i = 0..x
       ptrdiff_t segment_size = (n / x) + (i <= n mod x ? 1 : 0)
       example:
       11 / 3 = 3
@@ -65,6 +81,7 @@ dist_err distribute(ptrdiff_t x, str input) {
       stuff[0].len = 11/3 + 1, because i+1 = 1 <= 11 % 3
       stuff[1].len = 11/3 + 1, because i+1 = 2 <= 11 % 3
       stuff[2].len = 11/3 + 0, because i+1 = 3 !<= 11 % 3
+
     */
 
     str a[x];
