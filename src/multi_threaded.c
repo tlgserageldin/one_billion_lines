@@ -153,7 +153,7 @@ long get_file_length(FILE *f) {
     return res;    
 }  
 
-int main(void) {
+int main() {
 //    FILE *f = fopen("/Users/tariqs/Documents/projects/code/one_billion_lines/data/measurements.txt",
 //                    "r");
     FILE *f = fopen("/Users/tariqs/Documents/projects/code/one_billion_lines/data/1000_lines.txt",
@@ -170,5 +170,16 @@ int main(void) {
     //        pthread_create(&threads[i], NULL, thread_function, &i);
     //    }
 
+    uint64_t file_len = get_file_length(f);
+    str input = {0};
+    input.data = calloc(file_len, sizeof(char));    
+    if (input.data == NULL) {
+        return EXIT_FAILURE;
+    }
     
+    input.len = fread(input.data, sizeof(char), file_len, f);
+
+    dist_res res = distribute(5, input);
+
+    return 0;    
 }
