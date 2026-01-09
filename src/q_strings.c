@@ -11,7 +11,7 @@ bool are_equal(str a, str b) {
   return !memcmp(a.data, b.data, a.len);
 }
 
-str slice(char *start, char *end) {
+str slice(unsigned char *start, unsigned char *end) {
   str s = {0};
   s.data = start;
   s.len = start ? end - start : 0;

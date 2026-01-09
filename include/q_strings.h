@@ -3,12 +3,10 @@
 #include <stddef.h>
 #include <string.h>
 
-#define LITERAL_TO_STR(s) ((str){.data = (char *)s, .len = sizeof(s) - 1})
-
-#define BAD_STR ((str){.data = NULL, .len = 0})
+#define S(s) ((str){.data = (unsigned char *)s, .len = sizeof(s) - 1})
 
 typedef struct {
-  char *data;
+  unsigned char *data;
   ptrdiff_t len;
 } str;
 
@@ -19,7 +17,7 @@ typedef struct {
 } snip;
 
 // returns a substring from start to end
-str slice(char *start, char *end);
+str slice(unsigned char *start, unsigned char *end);
 
 // returns a snip, splitting s on first instance of c
 snip cut(str s, char c);
