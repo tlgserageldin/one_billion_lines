@@ -84,53 +84,56 @@ dist_res distribute(ptrdiff_t x, str input) {
 
     */
 
-    str a[x];
-    // zeroing the dist_err sets ok to false
-    dist_err res = {0};
-    ptrdiff_t n = input.len;
-    ptrdiff_t total_walked = 0;    
-    for (ptrdiff_t i = 0; i < x; ++i) {
-        // calcuate minimum size      
-        if (i + 1 <= n % x) {
-            a[i].len = (n / x) + 1;
-        } else {
-            a[i].len = (n / x);
-        }
-        
-        // walk forward to next newline
-        // handles end of input not having newline        
-        while (*(input.data + total_walked + a[i].len) != '\n' && total_walked + a[i].len < input.len) {
-            ++a[i].len;
-        }
-        
-        // allocate
-        a[i].data = calloc((size_t)a[i].len, sizeof(char));
-        if (a[i].data == NULL) {
-            return res;
-        }
-        
-        // copy
-        for (ptrdiff_t j = 0; j < a[i].len; ++j) {
-            *(a[i].data + j) = *(input.data + total_walked + j);
-        }
-        assert(total_walked + a[i].len > total_walked);
-        total_walked += a[i].len;
-        
-        // check for end of input
-        if (total_walked == input.len) {
-          res.ok = true;
-          res.result = a;
-          res.elements = i + 1;
+    /*
 
-          return res;          
-        }          
+      to guarantee that you have <= x slices that break on newline
+      precalculate the lengths of each of the slices.
+
+      walk each str from optimal spot to next newline
+      if you have atleast the optimal number of chars in each of the
+      strs until the final, the final str is guaranteed to have less or
+      equal to ( n / x ). you always fit all of the input into <= x slices
+
+     */
+
+    str slices[x];
+    memset(&slices, 0, sizeof(str) * x);
+
+    dist_res r = {0};
+    unsigned char *head, *tail;
+    head = tail = input.data;
+    snip s = {0};
+    for (int i = 0; i < x; ++i) {
+
+        ptrdiff_t optimal_length =
+            (input.len / x) + ((i + 1) <= (input.len % x) ? 1 : 0);
+        
+        // bounds check
+        if (((head + optimal_length) - input.data) > input.len) {
+            ptrdiff_t remainder = input.len - (head - input.data);           
+            tail = head + remainder;
+        } else {
+            tail = head + optimal_length;
+        }
+
+        if (tail == input.data + input.len) {
+            slices[i] = slice(head, tail);
+            return build_result(true, slices, i + 1);
+        } else if (*tail != '\n') {
+          s.tail = (str){.data = tail, .len = input.len - (tail - input.data)};
+          s = cut(s.tail, '\n');
+          if (!s.ok) {
+            return r;
+          }            
+          tail = s.head.data + s.head.len;          
+        }
+
+        slices[i] = slice(head, tail);
+        head = tail;
     }
 
-    res.ok = true;    
-    res.result = a;
-    res.elements = x;
-
-    return res;
+    return build_result(true, slices, x);    
+    
 }
 
 long get_file_length(FILE *f) {
