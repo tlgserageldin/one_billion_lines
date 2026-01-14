@@ -183,14 +183,15 @@ int main() {
         return EXIT_FAILURE;
     }
 
-    input.len = fread(input.data, sizeof(char), file_len, f);
-    if (input.len == 0) {
+    input.len = (ptrdiff_t)fread(input.data, sizeof(char), file_len, f);
+    if (input.len <= 0) {
         return EXIT_FAILURE;
     }
+    
     // ensure \n on end of input
+    input[input.len] = '\n';
     ++input.len;
-    *(input.data + input.len) = '\n';
-
+    
     dist_res res = distribute(5, input);
     if (!res.ok) {
         return EXIT_FAILURE;
