@@ -4,7 +4,6 @@
 #include <assert.h>
 // #include <cstdlib.h>
 // #include <cstdlib>
-#include <climits>
 #include <pthread.h>
 #include <stdatomic.h>
 #include <stddef.h>
@@ -61,8 +60,9 @@ void *thread_function(void *arg) {
 
 */
 dist_res distribute(ptrdiff_t x, str input) {
-  
-    if (!is_valid_str(input) || x >= input.len || x <= 0 || *(input.data + input.len) != '\n') {
+
+    assert(*(input.data + input.len) == '\n');  
+    if (!is_valid_str(input) || x >= input.len || x <= 0) {
         return (dist_res){0};
     }
 
@@ -97,7 +97,6 @@ dist_res distribute(ptrdiff_t x, str input) {
      */
 
     str slices[x];
-    memset(&slices, 0, sizeof(str) * x);
 
     dist_res r = {0};
     unsigned char *head, *tail;
@@ -105,29 +104,34 @@ dist_res distribute(ptrdiff_t x, str input) {
     snip s = {0};
     for (int i = 0; i < x; ++i) {
 
+        slices[i] = (str){0};
         ptrdiff_t optimal_length =
             (input.len / x) + ((i + 1) <= (input.len % x) ? 1 : 0);
-        
+
         // bounds check
-        if (((head + optimal_length) - input.data) > input.len) {
+        unsigned char *target = head + optimal_length;
+        ptrdiff_t diff_target_and_start = target - input.data;
+        if (diff_target_and_start > input.len) {
             ptrdiff_t remainder = input.len - (head - input.data);           
             tail = head + remainder;
         } else {
-            tail = head + optimal_length;
+            tail = target;
         }
 
+        // check for end        
         if (tail == input.data + input.len) {
-            slices[i] = slice(head, tail);
-            return build_result(true, slices, i + 1);
-        } else if (*tail != '\n') {
+            slices[i] = slice(head, tail + 1);
+            return build_result(true, slices, i);
+        } else if (*(tail - 1) != '\n') {
           s.tail = (str){.data = tail, .len = input.len - (tail - input.data)};
           s = cut(s.tail, '\n');
           if (!s.ok) {
             return r;
           }            
-          tail = s.head.data + s.head.len;          
+          tail = s.head.data + s.head.len + 1;          
         }
 
+        // otherwise update the slice and reset head for next jump        
         slices[i] = slice(head, tail);
         head = tail;
     }
@@ -156,7 +160,8 @@ long get_file_length(FILE *f) {
 int main() {
 //    FILE *f = fopen("/Users/tariqs/Documents/projects/code/one_billion_lines/data/measurements.txt",
 //                    "r");
-    FILE *f = fopen("/Users/tariqs/Documents/projects/code/one_billion_lines/data/1000_lines.txt",
+    FILE *f = fopen("/Users/tariqs/Documents/projects/code/one_billion_lines/data/"
+                    "1000_lines.txt",
                     "r");
     if (!f) {
         return EXIT_FAILURE;
@@ -171,15 +176,32 @@ int main() {
     //    }
 
     uint64_t file_len = get_file_length(f);
+    
     str input = {0};
-    input.data = calloc(file_len, sizeof(char));    
+    input.data = calloc(file_len + 1, sizeof(char));    
     if (input.data == NULL) {
         return EXIT_FAILURE;
     }
-    
+
     input.len = fread(input.data, sizeof(char), file_len, f);
+    if (input.len == 0) {
+        return EXIT_FAILURE;
+    }
+    // ensure \n on end of input
+    ++input.len;
+    *(input.data + input.len) = '\n';
 
     dist_res res = distribute(5, input);
+    if (!res.ok) {
+        return EXIT_FAILURE;
+    }
 
+    fprintf(stdout, "Result has %zu elements.\n", res.elements);
+
+    for (size_t i = 0; i < res.elements; ++i) {
+        fprintf(stdout, "%zuth string has %td elements.\n", i, res.result[i].len);
+    }
+    fputs("\n", stdout);
+    
     return 0;    
 }

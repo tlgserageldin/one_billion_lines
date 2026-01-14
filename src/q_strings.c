@@ -24,9 +24,9 @@ snip cut(str s, char c) {
     return n;
   } // null pointer case
 
-  char *beggining = s.data;
-  char *end = s.data + s.len;
-  char *cut = beggining;
+  unsigned char *beggining = s.data;
+  unsigned char *end = s.data + s.len;
+  unsigned char *cut = beggining;
 
   for (; cut < end && *cut != c; cut++)
     ;

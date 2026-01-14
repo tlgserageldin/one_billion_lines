@@ -27,3 +27,8 @@ build:
 
 multithreaded: $(SRC) $(HEADERS) | build
 	$(CC) $(CFLAGS) $(SRC) -o build/multithreaded
+
+
+CFLAGS += -g -O0
+debug_multithreaded: $(SRC) $(HEADERS) | build
+	$(CC) $(CFLAGS) $(SRC) -o build/debug_multithreaded
