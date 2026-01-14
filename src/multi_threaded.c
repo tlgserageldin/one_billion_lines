@@ -59,12 +59,16 @@ void *thread_function(void *arg) {
   breaking on \n, of a number of slices <= x
 
 */
-dist_res distribute(ptrdiff_t x, str input) {
+dist_res distribute(ptrdiff_t x, str input, str *out_slices, ptrdiff_t out_cap) {
 
-    assert(*(input.data + input.len) == '\n');  
-    if (!is_valid_str(input) || x >= input.len || x <= 0) {
+    // assert(*(input.data + input.len) == '\n');  
+    if (!is_valid_str(input) || x >= input.len || x <= 0 || x > out_cap) {
         return (dist_res){0};
     }
+
+    if (input.data[input.len - 1] != '\n') {
+        return (dist_res){0};
+    }      
 
     /*
 
@@ -96,15 +100,13 @@ dist_res distribute(ptrdiff_t x, str input) {
 
      */
 
-    str slices[x];
-
     dist_res r = {0};
     unsigned char *head, *tail;
     head = tail = input.data;
     snip s = {0};
     for (int i = 0; i < x; ++i) {
 
-        slices[i] = (str){0};
+        out_slices[i] = (str){0};
         ptrdiff_t optimal_length =
             (input.len / x) + ((i + 1) <= (input.len % x) ? 1 : 0);
 
@@ -120,8 +122,8 @@ dist_res distribute(ptrdiff_t x, str input) {
 
         // check for end        
         if (tail == input.data + input.len) {
-            slices[i] = slice(head, tail + 1);
-            return build_result(true, slices, i);
+            out_slices[i] = slice(head, tail + 1);
+            return build_result(true, out_slices, i);
         } else if (*(tail - 1) != '\n') {
           s.tail = (str){.data = tail, .len = input.len - (tail - input.data)};
           s = cut(s.tail, '\n');
@@ -132,11 +134,11 @@ dist_res distribute(ptrdiff_t x, str input) {
         }
 
         // otherwise update the slice and reset head for next jump        
-        slices[i] = slice(head, tail);
+        out_slices[i] = slice(head, tail);
         head = tail;
     }
 
-    return build_result(true, slices, x);    
+    return build_result(true, out_slices, x);    
     
 }
 
@@ -189,10 +191,12 @@ int main() {
     }
     
     // ensure \n on end of input
-    input[input.len] = '\n';
+    input.data[input.len] = '\n';
     ++input.len;
-    
-    dist_res res = distribute(5, input);
+
+    ptrdiff_t x = 5;
+    str slices[x];
+    dist_res res = distribute(x, input, slices, x);
     if (!res.ok) {
         return EXIT_FAILURE;
     }
